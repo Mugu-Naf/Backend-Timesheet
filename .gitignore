@@ -1,0 +1,24 @@
+[Bb]in/
+[Oo]bj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.swp
+*.bak
+*.log
+.DS_Store
+Thumbs.db
+global.json
+# Exceptions for global config
+!global.json
+# SQL Server local database files
+*.mdf
+*.ldf
+# NuGet Packages
+packages/
+*.nupkg
+# App settings with secrets (optional, but good practice to use environment variables or user secrets)
+# appsettings.json
