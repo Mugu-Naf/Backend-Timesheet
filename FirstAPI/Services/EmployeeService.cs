@@ -11,7 +11,6 @@ namespace FirstAPI.Services
     public class EmployeeService : IEmployeeService
     {
         private readonly IRepository<int, Employee> _employeeRepository;
-        private readonly TimeSheetContext _context;
         private readonly IMapper _mapper;
 
         public EmployeeService(
@@ -20,7 +19,6 @@ namespace FirstAPI.Services
             IMapper mapper)
         {
             _employeeRepository = employeeRepository;
-            _context = context;
             _mapper = mapper;
         }
 
@@ -32,7 +30,7 @@ namespace FirstAPI.Services
 
         public async Task<EmployeeProfileDto> GetEmployeeByUsername(string username)
         {
-            var employee = await _context.Employees
+            var employee = await _employeeRepository.GetQueryable()
                 .FirstOrDefaultAsync(e => e.Username == username);
 
             if (employee == null)
@@ -66,6 +64,16 @@ namespace FirstAPI.Services
         {
             var employee = await _employeeRepository.Delete(employeeId);
             return _mapper.Map<EmployeeProfileDto>(employee);
+        }
+
+        // NEW: Create Employee
+        public async Task<EmployeeProfileDto> CreateEmployee(EmployeeCreateDto dto)
+        {
+            var employee = _mapper.Map<Employee>(dto);
+
+            var createdEmployee = await _employeeRepository.Add(employee);
+
+            return _mapper.Map<EmployeeProfileDto>(createdEmployee);
         }
     }
 }

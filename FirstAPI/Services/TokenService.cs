@@ -34,7 +34,7 @@ namespace FirstAPI.Services
                 audience: _configuration["JWT:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(
-                    double.Parse(_configuration["JWT:ExpirationMinutes"] ?? "60")),
+                    double.Parse(_configuration["JWT:ExpirationMinutes"] ?? "180")),
                 signingCredentials: credentials
             );
 
