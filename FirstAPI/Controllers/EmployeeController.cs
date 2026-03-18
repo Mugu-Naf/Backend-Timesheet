@@ -3,6 +3,7 @@ using FirstAPI.Interfaces;
 using FirstAPI.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TimeSheetApp.Models.DTOs;
 
 namespace FirstAPI.Controllers
 {
@@ -17,6 +18,7 @@ namespace FirstAPI.Controllers
         {
             _employeeService = employeeService;
         }
+
 
         [HttpGet("profile")]
         [Authorize(Roles = "Employee,HR,Admin")]
@@ -37,7 +39,7 @@ namespace FirstAPI.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<EmployeeProfileDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<EmployeeProfileDto>>> GetAll(GetAllEmployeesRequestDTO dto)
         {
             var result = await _employeeService.GetAllEmployees();
             return Ok(result);

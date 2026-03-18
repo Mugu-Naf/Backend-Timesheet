@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "FirstAPI": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:59768;http://localhost:59769"
+    }
+  }
+}

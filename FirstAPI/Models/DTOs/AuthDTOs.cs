@@ -12,9 +12,9 @@ namespace FirstAPI.Models.DTOs
         [MinLength(6)]
         public string Password { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(20)]
-        public string Role { get; set; } = "Employee";
+        //[Required]
+        //[MaxLength(20)]
+        //public string Role { get; set; } = "Employee";
 
         [Required]
         [MaxLength(50)]

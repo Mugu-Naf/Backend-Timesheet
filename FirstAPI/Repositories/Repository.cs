@@ -49,5 +49,10 @@ namespace FirstAPI.Repositories
         {
             return await _context.Set<T>().ToListAsync();
         }
+
+        public IQueryable<T> GetQueryable()
+        {
+            return _context.Set<T>();
+        }
     }
 }
