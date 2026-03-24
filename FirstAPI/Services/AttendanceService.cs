@@ -184,6 +184,16 @@ namespace FirstAPI.Services
         {
             var today = DateTime.UtcNow.Date;
 
+            // Block if there's an open check-in from a previous day (forgot to check out)
+            var openPrevious = await _attendanceRepository.GetQueryable()
+                .FirstOrDefaultAsync(a => a.EmployeeId == employeeId
+                    && a.Date.Date < today
+                    && a.CheckInTime != null
+                    && a.CheckOutTime == null);
+
+            if (openPrevious != null)
+                throw new Exceptions.ValidationException($"You forgot to check out on {openPrevious.Date:yyyy-MM-dd}. Please contact HR to fix it before checking in.");
+
             // Check for duplicate check-in for today
             var existing = await _attendanceRepository.GetQueryable()
                 .FirstOrDefaultAsync(a => a.EmployeeId == employeeId && a.Date.Date == today);
