@@ -16,6 +16,7 @@ namespace FirstAPI.Contexts
         public DbSet<Project> Projects { get; set; }
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<OvertimeRule> OvertimeRules { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,6 +88,15 @@ namespace FirstAPI.Contexts
             modelBuilder.Entity<OvertimeRule>(entity =>
             {
                 entity.HasKey(o => o.OvertimeRuleId);
+            });
+
+            // AuditLog
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasKey(a => a.AuditLogId);
+                entity.HasIndex(a => a.Username);
+                entity.HasIndex(a => a.Timestamp);
+                entity.HasIndex(a => new { a.EntityType, a.EntityId });
             });
         }
     }

@@ -13,20 +13,29 @@ namespace FirstAPI.Controllers
     {
         private readonly ITimesheetService _timesheetService;
         private readonly IEmployeeService _employeeService;
+        private readonly IAuditLogService _auditLog;
 
-        public TimesheetController(ITimesheetService timesheetService, IEmployeeService employeeService)
+        public TimesheetController(ITimesheetService timesheetService,
+                                   IEmployeeService employeeService,
+                                   IAuditLogService auditLog)
         {
             _timesheetService = timesheetService;
-            _employeeService = employeeService;
+            _employeeService  = employeeService;
+            _auditLog         = auditLog;
         }
+
+        private string GetUsername() => User.FindFirst(ClaimTypes.Name)?.Value ?? "unknown";
+        private string GetIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
         [HttpPost]
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<TimesheetResponseDto>> Create([FromBody] TimesheetCreateDto dto)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _timesheetService.CreateTimesheet(employee.EmployeeId, dto);
+            var result   = await _timesheetService.CreateTimesheet(employee.EmployeeId, dto);
+            await _auditLog.LogAsync(username, "CREATE", "Timesheet", result.TimesheetId,
+                $"Submitted timesheet for {result.Date:yyyy-MM-dd} ({result.HoursWorked}h)", GetIp());
             return Ok(result);
         }
 
@@ -34,9 +43,11 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<TimesheetResponseDto>> Update(int id, [FromBody] TimesheetUpdateDto dto)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _timesheetService.UpdateTimesheet(id, employee.EmployeeId, dto);
+            var result   = await _timesheetService.UpdateTimesheet(id, employee.EmployeeId, dto);
+            await _auditLog.LogAsync(username, "UPDATE", "Timesheet", id,
+                $"Updated timesheet #{id}", GetIp());
             return Ok(result);
         }
 
@@ -44,9 +55,11 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<TimesheetResponseDto>> Delete(int id)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _timesheetService.DeleteTimesheet(id, employee.EmployeeId);
+            var result   = await _timesheetService.DeleteTimesheet(id, employee.EmployeeId);
+            await _auditLog.LogAsync(username, "DELETE", "Timesheet", id,
+                $"Deleted timesheet #{id}", GetIp());
             return Ok(result);
         }
 
@@ -61,9 +74,9 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<IEnumerable<TimesheetResponseDto>>> GetMyTimesheets()
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _timesheetService.GetTimesheetsByEmployee(employee.EmployeeId);
+            var result   = await _timesheetService.GetTimesheetsByEmployee(employee.EmployeeId);
             return Ok(result);
         }
 
@@ -79,8 +92,10 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "HR,Admin")]
         public async Task<ActionResult<TimesheetResponseDto>> Approve(int id)
         {
-            var reviewedBy = User.FindFirst(ClaimTypes.Name)?.Value!;
-            var result = await _timesheetService.ApproveTimesheet(id, reviewedBy);
+            var username = GetUsername();
+            var result   = await _timesheetService.ApproveTimesheet(id, username);
+            await _auditLog.LogAsync(username, "APPROVE", "Timesheet", id,
+                $"Approved timesheet #{id}", GetIp());
             return Ok(result);
         }
 
@@ -88,8 +103,10 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "HR,Admin")]
         public async Task<ActionResult<TimesheetResponseDto>> Reject(int id)
         {
-            var reviewedBy = User.FindFirst(ClaimTypes.Name)?.Value!;
-            var result = await _timesheetService.RejectTimesheet(id, reviewedBy);
+            var username = GetUsername();
+            var result   = await _timesheetService.RejectTimesheet(id, username);
+            await _auditLog.LogAsync(username, "REJECT", "Timesheet", id,
+                $"Rejected timesheet #{id}", GetIp());
             return Ok(result);
         }
     }

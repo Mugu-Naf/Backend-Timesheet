@@ -13,20 +13,29 @@ namespace FirstAPI.Controllers
     {
         private readonly ILeaveRequestService _leaveRequestService;
         private readonly IEmployeeService _employeeService;
+        private readonly IAuditLogService _auditLog;
 
-        public LeaveRequestController(ILeaveRequestService leaveRequestService, IEmployeeService employeeService)
+        public LeaveRequestController(ILeaveRequestService leaveRequestService,
+                                      IEmployeeService employeeService,
+                                      IAuditLogService auditLog)
         {
             _leaveRequestService = leaveRequestService;
-            _employeeService = employeeService;
+            _employeeService     = employeeService;
+            _auditLog            = auditLog;
         }
+
+        private string GetUsername() => User.FindFirst(ClaimTypes.Name)?.Value ?? "unknown";
+        private string GetIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
         [HttpPost]
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<LeaveRequestResponseDto>> Create([FromBody] LeaveRequestCreateDto dto)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _leaveRequestService.CreateLeaveRequest(employee.EmployeeId, dto);
+            var result   = await _leaveRequestService.CreateLeaveRequest(employee.EmployeeId, dto);
+            await _auditLog.LogAsync(username, "CREATE", "LeaveRequest", result.LeaveRequestId,
+                $"Applied {result.LeaveType} leave from {result.StartDate:yyyy-MM-dd} to {result.EndDate:yyyy-MM-dd}", GetIp());
             return Ok(result);
         }
 
@@ -41,9 +50,9 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<IEnumerable<LeaveRequestResponseDto>>> GetMyLeaveRequests()
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _leaveRequestService.GetLeaveRequestsByEmployee(employee.EmployeeId);
+            var result   = await _leaveRequestService.GetLeaveRequestsByEmployee(employee.EmployeeId);
             return Ok(result);
         }
 
@@ -59,8 +68,10 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "HR,Admin")]
         public async Task<ActionResult<LeaveRequestResponseDto>> Approve(int id)
         {
-            var reviewedBy = User.FindFirst(ClaimTypes.Name)?.Value!;
-            var result = await _leaveRequestService.ApproveLeaveRequest(id, reviewedBy);
+            var username = GetUsername();
+            var result   = await _leaveRequestService.ApproveLeaveRequest(id, username);
+            await _auditLog.LogAsync(username, "APPROVE", "LeaveRequest", id,
+                $"Approved leave request #{id}", GetIp());
             return Ok(result);
         }
 
@@ -68,8 +79,10 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "HR,Admin")]
         public async Task<ActionResult<LeaveRequestResponseDto>> Reject(int id)
         {
-            var reviewedBy = User.FindFirst(ClaimTypes.Name)?.Value!;
-            var result = await _leaveRequestService.RejectLeaveRequest(id, reviewedBy);
+            var username = GetUsername();
+            var result   = await _leaveRequestService.RejectLeaveRequest(id, username);
+            await _auditLog.LogAsync(username, "REJECT", "LeaveRequest", id,
+                $"Rejected leave request #{id}", GetIp());
             return Ok(result);
         }
 
@@ -77,9 +90,11 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<LeaveRequestResponseDto>> Cancel(int id)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _leaveRequestService.CancelLeaveRequest(id, employee.EmployeeId);
+            var result   = await _leaveRequestService.CancelLeaveRequest(id, employee.EmployeeId);
+            await _auditLog.LogAsync(username, "CANCEL", "LeaveRequest", id,
+                $"Cancelled leave request #{id}", GetIp());
             return Ok(result);
         }
     }

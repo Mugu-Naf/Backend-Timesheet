@@ -13,20 +13,29 @@ namespace FirstAPI.Controllers
     {
         private readonly IAttendanceService _attendanceService;
         private readonly IEmployeeService _employeeService;
+        private readonly IAuditLogService _auditLog;
 
-        public AttendanceController(IAttendanceService attendanceService, IEmployeeService employeeService)
+        public AttendanceController(IAttendanceService attendanceService,
+                                    IEmployeeService employeeService,
+                                    IAuditLogService auditLog)
         {
             _attendanceService = attendanceService;
-            _employeeService = employeeService;
+            _employeeService   = employeeService;
+            _auditLog          = auditLog;
         }
+
+        private string GetUsername() => User.FindFirst(ClaimTypes.Name)?.Value ?? "unknown";
+        private string GetIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
         [HttpPost("check-in")]
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<AttendanceResponseDto>> CheckIn([FromBody] AttendanceCheckInDto dto)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _attendanceService.CheckIn(employee.EmployeeId, dto);
+            var result   = await _attendanceService.CheckIn(employee.EmployeeId, dto);
+            await _auditLog.LogAsync(username, "CHECK-IN", "Attendance", result.AttendanceId,
+                $"Checked in at {result.CheckInTime:HH:mm}", GetIp());
             return Ok(result);
         }
 
@@ -34,9 +43,11 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<AttendanceResponseDto>> CheckOut([FromBody] AttendanceCheckOutDto dto)
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _attendanceService.CheckOut(employee.EmployeeId, dto);
+            var result   = await _attendanceService.CheckOut(employee.EmployeeId, dto);
+            await _auditLog.LogAsync(username, "CHECK-OUT", "Attendance", result.AttendanceId,
+                $"Checked out at {result.CheckOutTime:HH:mm}", GetIp());
             return Ok(result);
         }
 
@@ -51,9 +62,9 @@ namespace FirstAPI.Controllers
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<IEnumerable<AttendanceResponseDto>>> GetMyAttendance()
         {
-            var username = User.FindFirst(ClaimTypes.Name)?.Value!;
+            var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result = await _attendanceService.GetAttendanceByEmployee(employee.EmployeeId);
+            var result   = await _attendanceService.GetAttendanceByEmployee(employee.EmployeeId);
             return Ok(result);
         }
 
@@ -67,7 +78,8 @@ namespace FirstAPI.Controllers
 
         [HttpGet("report/{employeeId}")]
         [Authorize(Roles = "HR,Admin")]
-        public async Task<ActionResult<AttendanceReportDto>> GetReport(int employeeId, [FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
+        public async Task<ActionResult<AttendanceReportDto>> GetReport(int employeeId,
+            [FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
         {
             var result = await _attendanceService.GetAttendanceReport(employeeId, fromDate, toDate);
             return Ok(result);
