@@ -32,7 +32,7 @@ namespace FirstAPI.Tests
             var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>());
             _mapper = config.CreateMapper();
 
-            _service = new LeaveRequestService(_leaveRepoMock.Object, _context, _mapper);
+            _service = new LeaveRequestService(_leaveRepoMock.Object, _context);
         }
 
         [TearDown]
