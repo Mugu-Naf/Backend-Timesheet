@@ -17,6 +17,7 @@ namespace FirstAPI.Contexts
         public DbSet<Attendance> Attendances { get; set; }
         public DbSet<OvertimeRule> OvertimeRules { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<LeaveBalance> LeaveBalances { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -97,6 +98,17 @@ namespace FirstAPI.Contexts
                 entity.HasIndex(a => a.Username);
                 entity.HasIndex(a => a.Timestamp);
                 entity.HasIndex(a => new { a.EntityType, a.EntityId });
+            });
+
+            // LeaveBalance
+            modelBuilder.Entity<LeaveBalance>(entity =>
+            {
+                entity.HasKey(lb => lb.LeaveBalanceId);
+                entity.HasIndex(lb => new { lb.EmployeeId, lb.Year }).IsUnique();
+                entity.HasOne(lb => lb.Employee)
+                      .WithMany()
+                      .HasForeignKey(lb => lb.EmployeeId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

@@ -50,6 +50,16 @@ namespace FirstAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("balance")]
+        [Authorize(Roles = "Employee,HR,Admin")]
+        public async Task<ActionResult<LeaveBalanceDto>> GetMyBalance()
+        {
+            var username = GetUsername();
+            var employee = await _employeeService.GetEmployeeByUsername(username);
+            var result   = await _leaveRequestService.GetLeaveBalance(employee.EmployeeId, DateTime.Today.Year);
+            return Ok(result);
+        }
+
         [HttpGet("{id:int}")]
         public async Task<ActionResult<LeaveRequestResponseDto>> GetById(int id)
         {

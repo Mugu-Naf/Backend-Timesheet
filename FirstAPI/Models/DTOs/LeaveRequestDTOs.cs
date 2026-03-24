@@ -17,6 +17,26 @@ namespace FirstAPI.Models.DTOs
         public string? Reason { get; set; }
     }
 
+    public class LeaveBalanceDto
+    {
+        public int Year { get; set; }
+        public int CasualTotal { get; set; }
+        public int CasualUsed { get; set; }
+        public int CasualRemaining => CasualTotal - CasualUsed;
+        public int SickTotal { get; set; }
+        public int SickUsed { get; set; }
+        public int SickRemaining => SickTotal - SickUsed;
+        public int EarnedTotal { get; set; }
+        public int EarnedUsed { get; set; }
+        public int EarnedRemaining => EarnedTotal - EarnedUsed;
+        public int MaternityTotal { get; set; }
+        public int MaternityUsed { get; set; }
+        public int MaternityRemaining => MaternityTotal - MaternityUsed;
+        public int PaternityTotal { get; set; }
+        public int PaternityUsed { get; set; }
+        public int PaternityRemaining => PaternityTotal - PaternityUsed;
+    }
+
     public class LeaveRequestResponseDto
     {
         public int LeaveRequestId { get; set; }

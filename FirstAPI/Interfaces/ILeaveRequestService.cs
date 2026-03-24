@@ -11,5 +11,6 @@ namespace FirstAPI.Interfaces
         Task<LeaveRequestResponseDto> ApproveLeaveRequest(int leaveRequestId, string reviewedBy);
         Task<LeaveRequestResponseDto> RejectLeaveRequest(int leaveRequestId, string reviewedBy);
         Task<LeaveRequestResponseDto> CancelLeaveRequest(int leaveRequestId, int employeeId);
+        Task<LeaveBalanceDto> GetLeaveBalance(int employeeId, int year);
     }
 }
