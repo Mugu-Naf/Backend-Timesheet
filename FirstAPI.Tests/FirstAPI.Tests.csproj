@@ -29,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FirstAPI\FirstAPI.csproj" />
+    <ProjectReference Include="..\FirstAPI\TimeSheetApp.csproj" />
   </ItemGroup>
 
 </Project>
