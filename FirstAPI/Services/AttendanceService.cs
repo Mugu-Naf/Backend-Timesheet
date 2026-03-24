@@ -191,11 +191,12 @@ namespace FirstAPI.Services
             if (existing != null)
                 throw new DuplicateEntityException($"Attendance already recorded for employee {employeeId} on {today:yyyy-MM-dd}");
 
+            var rawCheckIn = dto.CheckInTime ?? DateTime.UtcNow;
             var attendance = new Attendance
             {
                 EmployeeId = employeeId,
                 Date = today,
-                CheckInTime = dto.CheckInTime ?? DateTime.UtcNow,
+                CheckInTime = new DateTime(rawCheckIn.Year, rawCheckIn.Month, rawCheckIn.Day, rawCheckIn.Hour, rawCheckIn.Minute, 0),
                 Status = AttendanceStatus.Present
             };
 
@@ -216,7 +217,8 @@ namespace FirstAPI.Services
             if (attendance.CheckOutTime != null)
                 throw new Exceptions.ValidationException("Already checked out for today");
 
-            attendance.CheckOutTime = dto.CheckOutTime ?? DateTime.UtcNow;
+            var rawCheckOut = dto.CheckOutTime ?? DateTime.UtcNow;
+            attendance.CheckOutTime = new DateTime(rawCheckOut.Year, rawCheckOut.Month, rawCheckOut.Day, rawCheckOut.Hour, rawCheckOut.Minute, 0);
 
             // Determine status based on hours worked
             var hoursWorked = (attendance.CheckOutTime.Value - attendance.CheckInTime!.Value).TotalHours;

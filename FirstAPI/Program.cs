@@ -115,6 +115,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Auto-apply pending migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TimeSheetContext>();
+    db.Database.Migrate();
+}
+
 // Global Exception Handler — must be first
 app.UseMiddleware<GlobalExceptionMiddleware>();
 

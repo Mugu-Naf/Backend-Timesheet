@@ -39,13 +39,7 @@ namespace FirstAPI.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<LeaveRequestResponseDto>> GetById(int id)
-        {
-            var result = await _leaveRequestService.GetLeaveRequestById(id);
-            return Ok(result);
-        }
-
+        // ✅ "my" MUST come before "{id}" to avoid route conflict
         [HttpGet("my")]
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<IEnumerable<LeaveRequestResponseDto>>> GetMyLeaveRequests()
@@ -53,6 +47,13 @@ namespace FirstAPI.Controllers
             var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
             var result   = await _leaveRequestService.GetLeaveRequestsByEmployee(employee.EmployeeId);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<LeaveRequestResponseDto>> GetById(int id)
+        {
+            var result = await _leaveRequestService.GetLeaveRequestById(id);
             return Ok(result);
         }
 

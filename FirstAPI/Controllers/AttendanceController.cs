@@ -51,13 +51,7 @@ namespace FirstAPI.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{id}")]
-        public async Task<ActionResult<AttendanceResponseDto>> GetById(int id)
-        {
-            var result = await _attendanceService.GetAttendanceById(id);
-            return Ok(result);
-        }
-
+        // ✅ "my" BEFORE "{id:int}" to prevent route conflict
         [HttpGet("my")]
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<IEnumerable<AttendanceResponseDto>>> GetMyAttendance()
@@ -65,6 +59,13 @@ namespace FirstAPI.Controllers
             var username = GetUsername();
             var employee = await _employeeService.GetEmployeeByUsername(username);
             var result   = await _attendanceService.GetAttendanceByEmployee(employee.EmployeeId);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<AttendanceResponseDto>> GetById(int id)
+        {
+            var result = await _attendanceService.GetAttendanceById(id);
             return Ok(result);
         }
 

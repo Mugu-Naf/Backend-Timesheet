@@ -39,6 +39,32 @@ namespace FirstAPI.Controllers
             return Ok(result);
         }
 
+        // ✅ "my" BEFORE "{id:int}" to prevent route conflict
+        [HttpGet("my")]
+        [Authorize(Roles = "Employee,HR,Admin")]
+        public async Task<ActionResult<IEnumerable<TimesheetResponseDto>>> GetMyTimesheets()
+        {
+            var username = GetUsername();
+            var employee = await _employeeService.GetEmployeeByUsername(username);
+            var result   = await _timesheetService.GetTimesheetsByEmployee(employee.EmployeeId);
+            return Ok(result);
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<TimesheetResponseDto>> GetById(int id)
+        {
+            var result = await _timesheetService.GetTimesheetById(id);
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "HR,Admin")]
+        public async Task<ActionResult<IEnumerable<TimesheetResponseDto>>> GetAll()
+        {
+            var result = await _timesheetService.GetAllTimesheets();
+            return Ok(result);
+        }
+
         [HttpPut("{id}")]
         [Authorize(Roles = "Employee,HR,Admin")]
         public async Task<ActionResult<TimesheetResponseDto>> Update(int id, [FromBody] TimesheetUpdateDto dto)
@@ -60,31 +86,6 @@ namespace FirstAPI.Controllers
             var result   = await _timesheetService.DeleteTimesheet(id, employee.EmployeeId);
             await _auditLog.LogAsync(username, "DELETE", "Timesheet", id,
                 $"Deleted timesheet #{id}", GetIp());
-            return Ok(result);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<TimesheetResponseDto>> GetById(int id)
-        {
-            var result = await _timesheetService.GetTimesheetById(id);
-            return Ok(result);
-        }
-
-        [HttpGet("my")]
-        [Authorize(Roles = "Employee,HR,Admin")]
-        public async Task<ActionResult<IEnumerable<TimesheetResponseDto>>> GetMyTimesheets()
-        {
-            var username = GetUsername();
-            var employee = await _employeeService.GetEmployeeByUsername(username);
-            var result   = await _timesheetService.GetTimesheetsByEmployee(employee.EmployeeId);
-            return Ok(result);
-        }
-
-        [HttpGet]
-        [Authorize(Roles = "HR,Admin")]
-        public async Task<ActionResult<IEnumerable<TimesheetResponseDto>>> GetAll()
-        {
-            var result = await _timesheetService.GetAllTimesheets();
             return Ok(result);
         }
 
