@@ -1,170 +1,4 @@
-//using AutoMapper;
-//using FirstAPI.Contexts;
-//using FirstAPI.Exceptions;
-//using FirstAPI.Interfaces;
-//using FirstAPI.Models;
-//using FirstAPI.Models.DTOs;
-//using Microsoft.EntityFrameworkCore;
-
-//namespace FirstAPI.Services
-//{
-//    public class LeaveRequestService : ILeaveRequestService
-//    {
-//        private readonly IRepository<int, LeaveRequest> _leaveRequestRepository;
-//        //private readonly TimeSheetContext _context;
-//        private readonly IMapper _mapper;
-
-//        public LeaveRequestService(
-//            IRepository<int, LeaveRequest> leaveRequestRepository,
-//            TimeSheetContext context,
-//            IMapper mapper)
-//        {
-//            _leaveRequestRepository = leaveRequestRepository;
-//            //_context = context;
-//            _mapper = mapper;
-//        }
-
-//        public async Task<LeaveRequestResponseDto> CreateLeaveRequest(int employeeId, LeaveRequestCreateDto dto)
-//        {
-//            if (dto.EndDate < dto.StartDate)
-//                throw new Exceptions.ValidationException("End date must be after start date");
-
-//            // Parse leave type
-//            if (!Enum.TryParse<LeaveType>(dto.LeaveType, true, out var leaveType))
-//                throw new Exceptions.ValidationException($"Invalid leave type: {dto.LeaveType}. Valid types: {string.Join(", ", Enum.GetNames<LeaveType>())}");
-
-//            // Check for overlapping leaves
-//            var overlapping = await _leaveRequestRepository.GetQueryable()
-//                .AnyAsync(l => l.EmployeeId == employeeId
-//                    && l.Status != LeaveStatus.Rejected
-//                    && l.Status != LeaveStatus.Cancelled
-//                    && l.StartDate <= dto.EndDate
-//                    && l.EndDate >= dto.StartDate);
-
-//            if (overlapping)
-//                throw new DuplicateEntityException("An overlapping leave request already exists for this period");
-
-//            var leaveRequest = new LeaveRequest
-//            {
-//                EmployeeId = employeeId,
-//                LeaveType = leaveType,
-//                StartDate = dto.StartDate.Date,
-//                EndDate = dto.EndDate.Date,
-//                Reason = dto.Reason,
-//                Status = LeaveStatus.Pending,
-//                CreatedAt = DateTime.UtcNow
-//            };
-
-//            await _leaveRequestRepository.Add(leaveRequest);
-//            return await MapToResponseDto(leaveRequest);
-//        }
-
-//        public async Task<LeaveRequestResponseDto> GetLeaveRequestById(int leaveRequestId)
-//        {
-//            var leaveRequest = await _leaveRequestRepository.GetQueryable()
-//                .Include(l => l.Employee)
-//                .FirstOrDefaultAsync(l => l.LeaveRequestId == leaveRequestId);
-
-//            if (leaveRequest == null)
-//                throw new EntityNotFoundException($"Leave request with ID {leaveRequestId} not found");
-
-//            return MapToDto(leaveRequest);
-//        }
-
-//        public async Task<IEnumerable<LeaveRequestResponseDto>> GetLeaveRequestsByEmployee(int employeeId)
-//        {
-//            var requests = await _leaveRequestRepository.GetQueryable()
-//                .Include(l => l.Employee)
-//                .Where(l => l.EmployeeId == employeeId)
-//                .OrderByDescending(l => l.CreatedAt)
-//                .ToListAsync();
-
-//            return requests.Select(MapToDto);
-//        }
-
-//        public async Task<IEnumerable<LeaveRequestResponseDto>> GetAllLeaveRequests()
-//        {
-//            var requests = await _leaveRequestRepository.GetQueryable()
-//                .Include(l => l.Employee)
-//                .OrderByDescending(l => l.CreatedAt)
-//                .ToListAsync();
-
-//            return requests.Select(MapToDto);
-//        }
-
-//        public async Task<LeaveRequestResponseDto> ApproveLeaveRequest(int leaveRequestId, string reviewedBy)
-//        {
-//            var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
-//            if (leaveRequest.Status != LeaveStatus.Pending)
-//                throw new Exceptions.ValidationException("Only pending leave requests can be approved");
-
-//            leaveRequest.Status = LeaveStatus.Approved;
-//            leaveRequest.ReviewedBy = reviewedBy;
-//            leaveRequest.ReviewedAt = DateTime.UtcNow;
-
-//            await _leaveRequestRepository.Update(leaveRequest);
-//            return await MapToResponseDto(leaveRequest);
-//        }
-
-//        public async Task<LeaveRequestResponseDto> RejectLeaveRequest(int leaveRequestId, string reviewedBy)
-//        {
-//            var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
-//            if (leaveRequest.Status != LeaveStatus.Pending)
-//                throw new Exceptions.ValidationException("Only pending leave requests can be rejected");
-
-//            leaveRequest.Status = LeaveStatus.Rejected;
-//            leaveRequest.ReviewedBy = reviewedBy;
-//            leaveRequest.ReviewedAt = DateTime.UtcNow;
-
-//            await _leaveRequestRepository.Update(leaveRequest);
-//            return await MapToResponseDto(leaveRequest);
-//        }
-
-//        public async Task<LeaveRequestResponseDto> CancelLeaveRequest(int leaveRequestId, int employeeId)
-//        {
-//            var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
-//            if (leaveRequest.EmployeeId != employeeId)
-//                throw new UnAuthorizedException("You can only cancel your own leave requests");
-//            if (leaveRequest.Status != LeaveStatus.Pending)
-//                throw new Exceptions.ValidationException("Only pending leave requests can be cancelled");
-
-//            leaveRequest.Status = LeaveStatus.Cancelled;
-//            await _leaveRequestRepository.Update(leaveRequest);
-//            return await MapToResponseDto(leaveRequest);
-//        }
-
-//        private async Task<LeaveRequestResponseDto> MapToResponseDto(LeaveRequest leaveRequest)
-//        {
-//            var fullRequest = await _leaveRequestRepository.GetQueryable()
-//                .Include(l => l.Employee)
-//                .FirstOrDefaultAsync(l => l.LeaveRequestId == leaveRequest.LeaveRequestId);
-
-//            return MapToDto(fullRequest ?? leaveRequest);
-//        }
-
-//        private LeaveRequestResponseDto MapToDto(LeaveRequest leaveRequest)
-//        {
-//            return new LeaveRequestResponseDto
-//            {
-//                LeaveRequestId = leaveRequest.LeaveRequestId,
-//                EmployeeId = leaveRequest.EmployeeId,
-//                EmployeeName = leaveRequest.Employee != null ? $"{leaveRequest.Employee.FirstName} {leaveRequest.Employee.LastName}" : "",
-//                LeaveType = leaveRequest.LeaveType.ToString(),
-//                StartDate = leaveRequest.StartDate,
-//                EndDate = leaveRequest.EndDate,
-//                Reason = leaveRequest.Reason,
-//                Status = leaveRequest.Status.ToString(),
-//                ReviewedBy = leaveRequest.ReviewedBy,
-//                ReviewedAt = leaveRequest.ReviewedAt,
-//                CreatedAt = leaveRequest.CreatedAt
-//            };
-//        }
-//    }
-//}
-
-
-using AutoMapper;
-using FirstAPI.Contexts;
+﻿using FirstAPI.Contexts;
 using FirstAPI.Exceptions;
 using FirstAPI.Interfaces;
 using FirstAPI.Models;
@@ -177,24 +11,19 @@ namespace FirstAPI.Services
     {
         private readonly IRepository<int, LeaveRequest> _leaveRequestRepository;
         private readonly TimeSheetContext _context;
-        private readonly IMapper _mapper;
 
         public LeaveRequestService(
             IRepository<int, LeaveRequest> leaveRequestRepository,
-            TimeSheetContext context,
-            IMapper mapper)
+            TimeSheetContext context)
         {
             _leaveRequestRepository = leaveRequestRepository;
             _context = context;
-            _mapper = mapper;
         }
 
-        // Get or create a LeaveBalance row for the employee+year
         private async Task<LeaveBalance> GetOrCreateBalance(int employeeId, int year)
         {
             var balance = await _context.LeaveBalances
                 .FirstOrDefaultAsync(lb => lb.EmployeeId == employeeId && lb.Year == year);
-
             if (balance == null)
             {
                 balance = new LeaveBalance { EmployeeId = employeeId, Year = year };
@@ -206,50 +35,41 @@ namespace FirstAPI.Services
 
         public async Task<LeaveRequestResponseDto> CreateLeaveRequest(int employeeId, LeaveRequestCreateDto dto)
         {
-            // Block past dates
             if (dto.StartDate.Date < DateTime.Today)
-                throw new Exceptions.ValidationException("Start date cannot be in the past.");
-
+                throw new ValidationException("Start date cannot be in the past.");
             if (dto.EndDate < dto.StartDate)
-                throw new Exceptions.ValidationException("End date must be after start date");
-
+                throw new ValidationException("End date must be after start date.");
             if (!Enum.TryParse<LeaveType>(dto.LeaveType, true, out var leaveType))
-                throw new Exceptions.ValidationException($"Invalid leave type: {dto.LeaveType}. Valid types: {string.Join(", ", Enum.GetNames<LeaveType>())}");
+                throw new ValidationException($"Invalid leave type: {dto.LeaveType}.");
 
-            // Check for overlapping leaves
             var overlapping = await _leaveRequestRepository.GetQueryable()
                 .AnyAsync(l => l.EmployeeId == employeeId
                     && l.Status != LeaveStatus.Rejected
                     && l.Status != LeaveStatus.Cancelled
                     && l.StartDate <= dto.EndDate
                     && l.EndDate >= dto.StartDate);
-
             if (overlapping)
-                throw new DuplicateEntityException("An overlapping leave request already exists for this period");
+                throw new DuplicateEntityException("An overlapping leave request already exists for this period.");
 
-            // Check leave balance (skip for Unpaid)
             if (leaveType != LeaveType.Unpaid)
             {
-                int year = dto.StartDate.Year;
-                var balance = await GetOrCreateBalance(employeeId, year);
+                var balance = await GetOrCreateBalance(employeeId, dto.StartDate.Year);
                 int days = (int)(dto.EndDate.Date - dto.StartDate.Date).TotalDays + 1;
                 int remaining = GetRemaining(balance, leaveType);
-
                 if (remaining < days)
-                    throw new Exceptions.ValidationException($"Insufficient {leaveType} leave balance. Remaining: {remaining} day(s), Requested: {days} day(s).");
+                    throw new ValidationException($"Insufficient {leaveType} leave balance. Remaining: {remaining} day(s), Requested: {days} day(s).");
             }
 
             var leaveRequest = new LeaveRequest
             {
                 EmployeeId = employeeId,
-                LeaveType = leaveType,
-                StartDate = dto.StartDate.Date,
-                EndDate = dto.EndDate.Date,
-                Reason = dto.Reason,
-                Status = LeaveStatus.Pending,
-                CreatedAt = DateTime.UtcNow
+                LeaveType  = leaveType,
+                StartDate  = dto.StartDate.Date,
+                EndDate    = dto.EndDate.Date,
+                Reason     = dto.Reason,
+                Status     = LeaveStatus.Pending,
+                CreatedAt  = DateTime.UtcNow
             };
-
             await _leaveRequestRepository.Add(leaveRequest);
             return await MapToResponseDto(leaveRequest);
         }
@@ -259,10 +79,8 @@ namespace FirstAPI.Services
             var leaveRequest = await _leaveRequestRepository.GetQueryable()
                 .Include(l => l.Employee)
                 .FirstOrDefaultAsync(l => l.LeaveRequestId == leaveRequestId);
-
             if (leaveRequest == null)
-                throw new EntityNotFoundException($"Leave request with ID {leaveRequestId} not found");
-
+                throw new EntityNotFoundException($"Leave request {leaveRequestId} not found.");
             return MapToDto(leaveRequest);
         }
 
@@ -273,7 +91,6 @@ namespace FirstAPI.Services
                 .Where(l => l.EmployeeId == employeeId)
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
-
             return requests.Select(MapToDto);
         }
 
@@ -283,7 +100,6 @@ namespace FirstAPI.Services
                 .Include(l => l.Employee)
                 .OrderByDescending(l => l.CreatedAt)
                 .ToListAsync();
-
             return requests.Select(MapToDto);
         }
 
@@ -291,22 +107,19 @@ namespace FirstAPI.Services
         {
             var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
             if (leaveRequest.Status != LeaveStatus.Pending)
-                throw new Exceptions.ValidationException("Only pending leave requests can be approved");
+                throw new ValidationException("Only pending leave requests can be approved.");
 
-            // Deduct balance on approval (skip Unpaid)
             if (leaveRequest.LeaveType != LeaveType.Unpaid)
             {
-                int year = leaveRequest.StartDate.Year;
-                var balance = await GetOrCreateBalance(leaveRequest.EmployeeId, year);
+                var balance = await GetOrCreateBalance(leaveRequest.EmployeeId, leaveRequest.StartDate.Year);
                 int days = (int)(leaveRequest.EndDate.Date - leaveRequest.StartDate.Date).TotalDays + 1;
                 DeductBalance(balance, leaveRequest.LeaveType, days);
                 await _context.SaveChangesAsync();
             }
 
-            leaveRequest.Status = LeaveStatus.Approved;
+            leaveRequest.Status     = LeaveStatus.Approved;
             leaveRequest.ReviewedBy = reviewedBy;
             leaveRequest.ReviewedAt = DateTime.UtcNow;
-
             await _leaveRequestRepository.Update(leaveRequest);
             return await MapToResponseDto(leaveRequest);
         }
@@ -315,12 +128,10 @@ namespace FirstAPI.Services
         {
             var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
             if (leaveRequest.Status != LeaveStatus.Pending)
-                throw new Exceptions.ValidationException("Only pending leave requests can be rejected");
-
-            leaveRequest.Status = LeaveStatus.Rejected;
+                throw new ValidationException("Only pending leave requests can be rejected.");
+            leaveRequest.Status     = LeaveStatus.Rejected;
             leaveRequest.ReviewedBy = reviewedBy;
             leaveRequest.ReviewedAt = DateTime.UtcNow;
-
             await _leaveRequestRepository.Update(leaveRequest);
             return await MapToResponseDto(leaveRequest);
         }
@@ -329,10 +140,9 @@ namespace FirstAPI.Services
         {
             var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
             if (leaveRequest.EmployeeId != employeeId)
-                throw new UnAuthorizedException("You can only cancel your own leave requests");
+                throw new UnAuthorizedException("You can only cancel your own leave requests.");
             if (leaveRequest.Status != LeaveStatus.Pending)
-                throw new Exceptions.ValidationException("Only pending leave requests can be cancelled");
-
+                throw new ValidationException("Only pending leave requests can be cancelled.");
             leaveRequest.Status = LeaveStatus.Cancelled;
             await _leaveRequestRepository.Update(leaveRequest);
             return await MapToResponseDto(leaveRequest);
@@ -343,26 +153,25 @@ namespace FirstAPI.Services
             var balance = await GetOrCreateBalance(employeeId, year);
             return new LeaveBalanceDto
             {
-                Year = balance.Year,
-                CasualTotal = balance.CasualTotal,
-                CasualUsed = balance.CasualUsed,
-                SickTotal = balance.SickTotal,
-                SickUsed = balance.SickUsed,
-                EarnedTotal = balance.EarnedTotal,
-                EarnedUsed = balance.EarnedUsed,
+                Year           = balance.Year,
+                CasualTotal    = balance.CasualTotal,
+                CasualUsed     = balance.CasualUsed,
+                SickTotal      = balance.SickTotal,
+                SickUsed       = balance.SickUsed,
+                EarnedTotal    = balance.EarnedTotal,
+                EarnedUsed     = balance.EarnedUsed,
                 MaternityTotal = balance.MaternityTotal,
-                MaternityUsed = balance.MaternityUsed,
+                MaternityUsed  = balance.MaternityUsed,
                 PaternityTotal = balance.PaternityTotal,
-                PaternityUsed = balance.PaternityUsed
+                PaternityUsed  = balance.PaternityUsed
             };
         }
 
-        // Helpers
         private int GetRemaining(LeaveBalance b, LeaveType type) => type switch
         {
-            LeaveType.Casual    => b.CasualTotal - b.CasualUsed,
-            LeaveType.Sick      => b.SickTotal - b.SickUsed,
-            LeaveType.Earned    => b.EarnedTotal - b.EarnedUsed,
+            LeaveType.Casual    => b.CasualTotal    - b.CasualUsed,
+            LeaveType.Sick      => b.SickTotal      - b.SickUsed,
+            LeaveType.Earned    => b.EarnedTotal    - b.EarnedUsed,
             LeaveType.Maternity => b.MaternityTotal - b.MaternityUsed,
             LeaveType.Paternity => b.PaternityTotal - b.PaternityUsed,
             _                   => int.MaxValue
@@ -382,167 +191,28 @@ namespace FirstAPI.Services
 
         private async Task<LeaveRequestResponseDto> MapToResponseDto(LeaveRequest leaveRequest)
         {
-            var fullRequest = await _leaveRequestRepository.GetQueryable()
+            var full = await _leaveRequestRepository.GetQueryable()
                 .Include(l => l.Employee)
                 .FirstOrDefaultAsync(l => l.LeaveRequestId == leaveRequest.LeaveRequestId);
-
-            return MapToDto(fullRequest ?? leaveRequest);
+            return MapToDto(full ?? leaveRequest);
         }
 
-        private LeaveRequestResponseDto MapToDto(LeaveRequest leaveRequest)
+        private LeaveRequestResponseDto MapToDto(LeaveRequest l)
         {
             return new LeaveRequestResponseDto
             {
-                LeaveRequestId = leaveRequest.LeaveRequestId,
-                EmployeeId = leaveRequest.EmployeeId,
-                EmployeeName = leaveRequest.Employee != null ? $"{leaveRequest.Employee.FirstName} {leaveRequest.Employee.LastName}" : "",
-                LeaveType = leaveRequest.LeaveType.ToString(),
-                StartDate = leaveRequest.StartDate,
-                EndDate = leaveRequest.EndDate,
-                Reason = leaveRequest.Reason,
-                Status = leaveRequest.Status.ToString(),
-                ReviewedBy = leaveRequest.ReviewedBy,
-                ReviewedAt = leaveRequest.ReviewedAt,
-                CreatedAt = leaveRequest.CreatedAt
+                LeaveRequestId = l.LeaveRequestId,
+                EmployeeId     = l.EmployeeId,
+                EmployeeName   = l.Employee != null ? $"{l.Employee.FirstName} {l.Employee.LastName}" : "",
+                LeaveType      = l.LeaveType.ToString(),
+                StartDate      = l.StartDate,
+                EndDate        = l.EndDate,
+                Reason         = l.Reason,
+                Status         = l.Status.ToString(),
+                ReviewedBy     = l.ReviewedBy,
+                ReviewedAt     = l.ReviewedAt,
+                CreatedAt      = l.CreatedAt
             };
         }
     }
-}
-
-        public async Task<LeaveRequestResponseDto> CreateLeaveRequest(int employeeId, LeaveRequestCreateDto dto)
-        {
-            if (dto.EndDate < dto.StartDate)
-                throw new Exceptions.ValidationException("End date must be after start date");
-
-            // Parse leave type
-            if (!Enum.TryParse<LeaveType>(dto.LeaveType, true, out var leaveType))
-                throw new Exceptions.ValidationException($"Invalid leave type: {dto.LeaveType}. Valid types: {string.Join(", ", Enum.GetNames<LeaveType>())}");
-
-            // Check for overlapping leaves
-            var overlapping = await _leaveRequestRepository.GetQueryable()
-                .AnyAsync(l => l.EmployeeId == employeeId
-                    && l.Status != LeaveStatus.Rejected
-                    && l.Status != LeaveStatus.Cancelled
-                    && l.StartDate <= dto.EndDate
-                    && l.EndDate >= dto.StartDate);
-
-            if (overlapping)
-                throw new DuplicateEntityException("An overlapping leave request already exists for this period");
-
-            var leaveRequest = new LeaveRequest
-            {
-                EmployeeId = employeeId,
-                LeaveType = leaveType,
-                StartDate = dto.StartDate.Date,
-                EndDate = dto.EndDate.Date,
-                Reason = dto.Reason,
-                Status = LeaveStatus.Pending,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await _leaveRequestRepository.Add(leaveRequest);
-            return await MapToResponseDto(leaveRequest);
-        }
-
-        public async Task<LeaveRequestResponseDto> GetLeaveRequestById(int leaveRequestId)
-        {
-            var leaveRequest = await _leaveRequestRepository.GetQueryable()
-                .Include(l => l.Employee)
-                .FirstOrDefaultAsync(l => l.LeaveRequestId == leaveRequestId);
-
-            if (leaveRequest == null)
-                throw new EntityNotFoundException($"Leave request with ID {leaveRequestId} not found");
-
-            return MapToDto(leaveRequest);
-        }
-
-        public async Task<IEnumerable<LeaveRequestResponseDto>> GetLeaveRequestsByEmployee(int employeeId)
-        {
-            var requests = await _leaveRequestRepository.GetQueryable()
-                .Include(l => l.Employee)
-                .Where(l => l.EmployeeId == employeeId)
-                .OrderByDescending(l => l.CreatedAt)
-                .ToListAsync();
-
-            return requests.Select(MapToDto);
-        }
-
-        public async Task<IEnumerable<LeaveRequestResponseDto>> GetAllLeaveRequests()
-        {
-            var requests = await _leaveRequestRepository.GetQueryable()
-                .Include(l => l.Employee)
-                .OrderByDescending(l => l.CreatedAt)
-                .ToListAsync();
-
-            return requests.Select(MapToDto);
-        }
-
-        public async Task<LeaveRequestResponseDto> ApproveLeaveRequest(int leaveRequestId, string reviewedBy)
-        {
-            var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
-            if (leaveRequest.Status != LeaveStatus.Pending)
-                throw new Exceptions.ValidationException("Only pending leave requests can be approved");
-
-            leaveRequest.Status = LeaveStatus.Approved;
-            leaveRequest.ReviewedBy = reviewedBy;
-            leaveRequest.ReviewedAt = DateTime.UtcNow;
-
-            await _leaveRequestRepository.Update(leaveRequest);
-            return await MapToResponseDto(leaveRequest);
-        }
-
-        public async Task<LeaveRequestResponseDto> RejectLeaveRequest(int leaveRequestId, string reviewedBy)
-        {
-            var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
-            if (leaveRequest.Status != LeaveStatus.Pending)
-                throw new Exceptions.ValidationException("Only pending leave requests can be rejected");
-
-            leaveRequest.Status = LeaveStatus.Rejected;
-            leaveRequest.ReviewedBy = reviewedBy;
-            leaveRequest.ReviewedAt = DateTime.UtcNow;
-
-            await _leaveRequestRepository.Update(leaveRequest);
-            return await MapToResponseDto(leaveRequest);
-        }
-
-        public async Task<LeaveRequestResponseDto> CancelLeaveRequest(int leaveRequestId, int employeeId)
-        {
-            var leaveRequest = await _leaveRequestRepository.Get(leaveRequestId);
-            if (leaveRequest.EmployeeId != employeeId)
-                throw new UnAuthorizedException("You can only cancel your own leave requests");
-            if (leaveRequest.Status != LeaveStatus.Pending)
-                throw new Exceptions.ValidationException("Only pending leave requests can be cancelled");
-
-            leaveRequest.Status = LeaveStatus.Cancelled;
-            await _leaveRequestRepository.Update(leaveRequest);
-            return await MapToResponseDto(leaveRequest);
-        }
-
-        private async Task<LeaveRequestResponseDto> MapToResponseDto(LeaveRequest leaveRequest)
-        {
-            var fullRequest = await _leaveRequestRepository.GetQueryable()
-                .Include(l => l.Employee)
-                .FirstOrDefaultAsync(l => l.LeaveRequestId == leaveRequest.LeaveRequestId);
-
-            return MapToDto(fullRequest ?? leaveRequest);
-        }
-
-        private LeaveRequestResponseDto MapToDto(LeaveRequest leaveRequest)
-        {
-            return new LeaveRequestResponseDto
-            {
-                LeaveRequestId = leaveRequest.LeaveRequestId,
-                EmployeeId = leaveRequest.EmployeeId,
-                EmployeeName = leaveRequest.Employee != null ? $"{leaveRequest.Employee.FirstName} {leaveRequest.Employee.LastName}" : "",
-                LeaveType = leaveRequest.LeaveType.ToString(),
-                StartDate = leaveRequest.StartDate,
-                EndDate = leaveRequest.EndDate,
-                Reason = leaveRequest.Reason,
-                Status = leaveRequest.Status.ToString(),
-                ReviewedBy = leaveRequest.ReviewedBy,
-                ReviewedAt = leaveRequest.ReviewedAt,
-                CreatedAt = leaveRequest.CreatedAt
-            };
-        }
-}
 }
