@@ -203,6 +203,68 @@ namespace FirstAPI.Migrations
                     b.ToTable("LeaveRequests");
                 });
 
+            modelBuilder.Entity("FirstAPI.Models.LeaveBalance", b =>
+                {
+                    b.Property<int>("LeaveBalanceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LeaveBalanceId"));
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CasualTotal")
+                        .HasDefaultValue(10)
+                        .HasColumnType("int");
+
+                    b.Property<int>("CasualUsed")
+                        .HasDefaultValue(0)
+                        .HasColumnType("int");
+
+                    b.Property<int>("SickTotal")
+                        .HasDefaultValue(10)
+                        .HasColumnType("int");
+
+                    b.Property<int>("SickUsed")
+                        .HasDefaultValue(0)
+                        .HasColumnType("int");
+
+                    b.Property<int>("EarnedTotal")
+                        .HasDefaultValue(15)
+                        .HasColumnType("int");
+
+                    b.Property<int>("EarnedUsed")
+                        .HasDefaultValue(0)
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaternityTotal")
+                        .HasDefaultValue(180)
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaternityUsed")
+                        .HasDefaultValue(0)
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaternityTotal")
+                        .HasDefaultValue(15)
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaternityUsed")
+                        .HasDefaultValue(0)
+                        .HasColumnType("int");
+
+                    b.HasKey("LeaveBalanceId");
+
+                    b.HasIndex("EmployeeId", "Year")
+                        .IsUnique();
+
+                    b.ToTable("LeaveBalances");
+                });
+
             modelBuilder.Entity("FirstAPI.Models.OvertimeRule", b =>
                 {
                     b.Property<int>("OvertimeRuleId")
@@ -380,6 +442,17 @@ namespace FirstAPI.Migrations
                 {
                     b.HasOne("FirstAPI.Models.Employee", "Employee")
                         .WithMany("LeaveRequests")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("FirstAPI.Models.LeaveBalance", b =>
+                {
+                    b.HasOne("FirstAPI.Models.Employee", "Employee")
+                        .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

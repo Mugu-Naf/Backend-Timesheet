@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -12,20 +12,20 @@ namespace FirstAPI.Migrations
                 name: "LeaveBalances",
                 columns: table => new
                 {
-                    LeaveBalanceId = table.Column<int>(nullable: false)
+                    LeaveBalanceId = table.Column<int>(type: "int")
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    EmployeeId     = table.Column<int>(nullable: false),
-                    Year           = table.Column<int>(nullable: false),
-                    CasualTotal    = table.Column<int>(nullable: false, defaultValue: 10),
-                    CasualUsed     = table.Column<int>(nullable: false, defaultValue: 0),
-                    SickTotal      = table.Column<int>(nullable: false, defaultValue: 10),
-                    SickUsed       = table.Column<int>(nullable: false, defaultValue: 0),
-                    EarnedTotal    = table.Column<int>(nullable: false, defaultValue: 15),
-                    EarnedUsed     = table.Column<int>(nullable: false, defaultValue: 0),
-                    MaternityTotal = table.Column<int>(nullable: false, defaultValue: 180),
-                    MaternityUsed  = table.Column<int>(nullable: false, defaultValue: 0),
-                    PaternityTotal = table.Column<int>(nullable: false, defaultValue: 15),
-                    PaternityUsed  = table.Column<int>(nullable: false, defaultValue: 0)
+                    EmployeeId     = table.Column<int>(type: "int"),
+                    Year           = table.Column<int>(type: "int"),
+                    CasualTotal    = table.Column<int>(type: "int", defaultValue: 10),
+                    CasualUsed     = table.Column<int>(type: "int", defaultValue: 0),
+                    SickTotal      = table.Column<int>(type: "int", defaultValue: 10),
+                    SickUsed       = table.Column<int>(type: "int", defaultValue: 0),
+                    EarnedTotal    = table.Column<int>(type: "int", defaultValue: 15),
+                    EarnedUsed     = table.Column<int>(type: "int", defaultValue: 0),
+                    MaternityTotal = table.Column<int>(type: "int", defaultValue: 180),
+                    MaternityUsed  = table.Column<int>(type: "int", defaultValue: 0),
+                    PaternityTotal = table.Column<int>(type: "int", defaultValue: 15),
+                    PaternityUsed  = table.Column<int>(type: "int", defaultValue: 0)
                 },
                 constraints: table =>
                 {
