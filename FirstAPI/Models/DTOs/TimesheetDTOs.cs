@@ -44,6 +44,7 @@ namespace FirstAPI.Models.DTOs
         public DateTime SubmittedAt { get; set; }
         public string? ReviewedBy { get; set; }
         public DateTime? ReviewedAt { get; set; }
+        public bool IsWeekend { get; set; }
     }
 
     public class TimesheetApprovalDto

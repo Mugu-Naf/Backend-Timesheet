@@ -152,6 +152,20 @@ namespace FirstAPI.Services
         public async Task<IEnumerable<ProjectResponseDto>> GetAllProjects()
         {
             var projects = await _projectRepository.GetAll();
+            // Auto-deactivate projects whose end date has passed
+            var now = DateTime.UtcNow.Date;
+            bool anyChanged = false;
+            foreach (var p in projects)
+            {
+                if (p.IsActive && p.EndDate.HasValue && p.EndDate.Value.Date < now)
+                {
+                    p.IsActive = false;
+                    await _projectRepository.Update(p);
+                    anyChanged = true;
+                }
+            }
+            if (anyChanged)
+                projects = await _projectRepository.GetAll();
             return _mapper.Map<IEnumerable<ProjectResponseDto>>(projects);
         }
 

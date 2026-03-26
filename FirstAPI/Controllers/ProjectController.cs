@@ -1,8 +1,11 @@
 using System.Security.Claims;
+using FirstAPI.Contexts;
 using FirstAPI.Interfaces;
+using FirstAPI.Models;
 using FirstAPI.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FirstAPI.Controllers
 {
@@ -13,11 +16,13 @@ namespace FirstAPI.Controllers
     {
         private readonly IProjectService _projectService;
         private readonly IAuditLogService _auditLog;
+        private readonly TimeSheetContext _context;
 
-        public ProjectController(IProjectService projectService, IAuditLogService auditLog)
+        public ProjectController(IProjectService projectService, IAuditLogService auditLog, TimeSheetContext context)
         {
             _projectService = projectService;
             _auditLog       = auditLog;
+            _context        = context;
         }
 
         private string GetUsername() => User.FindFirst(ClaimTypes.Name)?.Value ?? "unknown";
@@ -73,5 +78,65 @@ namespace FirstAPI.Controllers
             var result = await _projectService.GetActiveProjects();
             return Ok(result);
         }
+
+        // ── Project Members ──────────────────────────────────────────
+        [HttpGet("{id}/members")]
+        [Authorize(Roles = "Employee,HR,Admin")]
+        public async Task<ActionResult> GetMembers(int id)
+        {
+            var members = await _context.ProjectMembers
+                .Include(pm => pm.Employee)
+                .Where(pm => pm.ProjectId == id)
+                .Select(pm => new {
+                    pm.ProjectMemberId,
+                    pm.EmployeeId,
+                    EmployeeName = pm.Employee != null ? $"{pm.Employee.FirstName} {pm.Employee.LastName}" : "",
+                    pm.Employee!.Department,
+                    pm.Employee.JobTitle,
+                    pm.AssignedAt
+                })
+                .ToListAsync();
+            return Ok(members);
+        }
+
+        [HttpPost("{id}/members")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult> AddMember(int id, [FromBody] AddProjectMemberDto dto)
+        {
+            var exists = await _context.ProjectMembers
+                .AnyAsync(pm => pm.ProjectId == id && pm.EmployeeId == dto.EmployeeId);
+            if (exists)
+                return BadRequest(new { message = "Employee is already a member of this project." });
+
+            var member = new ProjectMember { ProjectId = id, EmployeeId = dto.EmployeeId };
+            _context.ProjectMembers.Add(member);
+            await _context.SaveChangesAsync();
+            await _auditLog.LogAsync(GetUsername(), "ADD_MEMBER", "Project", id,
+                $"Added employee #{dto.EmployeeId} to project #{id}", GetIp());
+            return Ok(new { message = "Employee added to project." });
+        }
+
+        [HttpDelete("{id}/members/{employeeId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult> RemoveMember(int id, int employeeId)
+        {
+            var member = await _context.ProjectMembers
+                .FirstOrDefaultAsync(pm => pm.ProjectId == id && pm.EmployeeId == employeeId);
+            if (member == null)
+                return NotFound(new { message = "Member not found." });
+
+            _context.ProjectMembers.Remove(member);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Employee removed from project." });
+        }
+    }
+}
+
+// DTO for adding member
+namespace FirstAPI.Models.DTOs
+{
+    public class AddProjectMemberDto
+    {
+        public int EmployeeId { get; set; }
     }
 }

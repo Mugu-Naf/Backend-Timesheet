@@ -120,6 +120,46 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<TimeSheetContext>();
     db.Database.Migrate();
+
+    // Ensure LeaveBalances table exists (in case migration didn't run)
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='LeaveBalances' AND xtype='U')
+        BEGIN
+            CREATE TABLE LeaveBalances (
+                LeaveBalanceId INT IDENTITY(1,1) PRIMARY KEY,
+                EmployeeId INT NOT NULL,
+                Year INT NOT NULL,
+                CasualTotal INT NOT NULL DEFAULT 10,
+                CasualUsed INT NOT NULL DEFAULT 0,
+                SickTotal INT NOT NULL DEFAULT 10,
+                SickUsed INT NOT NULL DEFAULT 0,
+                EarnedTotal INT NOT NULL DEFAULT 15,
+                EarnedUsed INT NOT NULL DEFAULT 0,
+                MaternityTotal INT NOT NULL DEFAULT 180,
+                MaternityUsed INT NOT NULL DEFAULT 0,
+                PaternityTotal INT NOT NULL DEFAULT 15,
+                PaternityUsed INT NOT NULL DEFAULT 0,
+                CONSTRAINT FK_LeaveBalances_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId) ON DELETE CASCADE,
+                CONSTRAINT UQ_LeaveBalances_EmpYear UNIQUE (EmployeeId, Year)
+            )
+        END
+    ");
+
+    // Ensure ProjectMembers table exists
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ProjectMembers' AND xtype='U')
+        BEGIN
+            CREATE TABLE ProjectMembers (
+                ProjectMemberId INT IDENTITY(1,1) PRIMARY KEY,
+                ProjectId INT NOT NULL,
+                EmployeeId INT NOT NULL,
+                AssignedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT FK_ProjectMembers_Projects FOREIGN KEY (ProjectId) REFERENCES Projects(ProjectId) ON DELETE CASCADE,
+                CONSTRAINT FK_ProjectMembers_Employees FOREIGN KEY (EmployeeId) REFERENCES Employees(EmployeeId),
+                CONSTRAINT UQ_ProjectMembers UNIQUE (ProjectId, EmployeeId)
+            )
+        END
+    ");
 }
 
 // Global Exception Handler — must be first

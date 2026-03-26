@@ -18,6 +18,7 @@ namespace FirstAPI.Contexts
         public DbSet<OvertimeRule> OvertimeRules { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<LeaveBalance> LeaveBalances { get; set; }
+        public DbSet<ProjectMember> ProjectMembers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -108,6 +109,21 @@ namespace FirstAPI.Contexts
                 entity.HasOne(lb => lb.Employee)
                       .WithMany()
                       .HasForeignKey(lb => lb.EmployeeId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ProjectMember
+            modelBuilder.Entity<ProjectMember>(entity =>
+            {
+                entity.HasKey(pm => pm.ProjectMemberId);
+                entity.HasIndex(pm => new { pm.ProjectId, pm.EmployeeId }).IsUnique();
+                entity.HasOne(pm => pm.Project)
+                      .WithMany()
+                      .HasForeignKey(pm => pm.ProjectId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(pm => pm.Employee)
+                      .WithMany()
+                      .HasForeignKey(pm => pm.EmployeeId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

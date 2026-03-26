@@ -68,7 +68,7 @@ namespace FirstAPI.Services
                 EndDate    = dto.EndDate.Date,
                 Reason     = dto.Reason,
                 Status     = LeaveStatus.Pending,
-                CreatedAt  = DateTime.UtcNow
+                CreatedAt  = DateTime.UtcNow.Add(TimeSpan.FromHours(5.5))
             };
             await _leaveRequestRepository.Add(leaveRequest);
             return await MapToResponseDto(leaveRequest);
@@ -119,7 +119,7 @@ namespace FirstAPI.Services
 
             leaveRequest.Status     = LeaveStatus.Approved;
             leaveRequest.ReviewedBy = reviewedBy;
-            leaveRequest.ReviewedAt = DateTime.UtcNow;
+            leaveRequest.ReviewedAt = DateTime.UtcNow.Add(TimeSpan.FromHours(5.5));
             await _leaveRequestRepository.Update(leaveRequest);
             return await MapToResponseDto(leaveRequest);
         }
@@ -131,7 +131,7 @@ namespace FirstAPI.Services
                 throw new ValidationException("Only pending leave requests can be rejected.");
             leaveRequest.Status     = LeaveStatus.Rejected;
             leaveRequest.ReviewedBy = reviewedBy;
-            leaveRequest.ReviewedAt = DateTime.UtcNow;
+            leaveRequest.ReviewedAt = DateTime.UtcNow.Add(TimeSpan.FromHours(5.5));
             await _leaveRequestRepository.Update(leaveRequest);
             return await MapToResponseDto(leaveRequest);
         }
