@@ -7,7 +7,7 @@ namespace FirstAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,HR")]
     public class AuditLogController : ControllerBase
     {
         private readonly IAuditLogService _auditLogService;
