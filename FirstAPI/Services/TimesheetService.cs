@@ -194,20 +194,21 @@ namespace FirstAPI.Services
         {
             return new TimesheetResponseDto
             {
-                TimesheetId   = t.TimesheetId,
-                EmployeeId    = t.EmployeeId,
-                EmployeeName  = t.Employee != null ? $"{t.Employee.FirstName} {t.Employee.LastName}" : "",
-                Date          = t.Date,
-                HoursWorked   = t.HoursWorked,
-                OvertimeHours = t.OvertimeHours,
-                ProjectId     = t.ProjectId,
-                ProjectName   = t.Project?.ProjectName,
-                Status        = t.Status.ToString(),
-                Comments      = t.Comments,
-                SubmittedAt   = t.SubmittedAt,
-                ReviewedBy    = t.ReviewedBy,
-                ReviewedAt    = t.ReviewedAt,
-                IsWeekend     = IsWeekend(t.Date)
+                TimesheetId        = t.TimesheetId,
+                EmployeeId         = t.EmployeeId,
+                EmployeeName       = t.Employee != null ? $"{t.Employee.FirstName} {t.Employee.LastName}" : "",
+                Date               = t.Date,
+                HoursWorked        = t.HoursWorked,
+                OvertimeHours      = t.OvertimeHours,
+                OvertimeMultiplier = IsWeekend(t.Date) ? 2.0m : (t.OvertimeHours > 0 ? 1.5m : 1.0m),
+                ProjectId          = t.ProjectId,
+                ProjectName        = t.Project?.ProjectName,
+                Status             = t.Status.ToString(),
+                Comments           = t.Comments,
+                SubmittedAt        = t.SubmittedAt,
+                ReviewedBy         = t.ReviewedBy,
+                ReviewedAt         = t.ReviewedAt,
+                IsWeekend          = IsWeekend(t.Date)
             };
         }
     }

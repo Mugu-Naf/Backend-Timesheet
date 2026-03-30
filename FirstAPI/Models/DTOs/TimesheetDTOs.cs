@@ -45,6 +45,8 @@ namespace FirstAPI.Models.DTOs
         public string? ReviewedBy { get; set; }
         public DateTime? ReviewedAt { get; set; }
         public bool IsWeekend { get; set; }
+        // Effective overtime multiplier: 2.0 on weekends, from OvertimeRule on weekdays
+        public decimal OvertimeMultiplier { get; set; } = 1.0m;
     }
 
     public class TimesheetApprovalDto
