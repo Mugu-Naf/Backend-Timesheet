@@ -37,7 +37,7 @@ namespace FirstAPI.Services
                     && a.CheckOutTime == null);
 
             if (openPrevious != null)
-                throw new Exceptions.ValidationException($"You forgot to check out on {openPrevious.Date:yyyy-MM-dd}. Please contact HR to fix it before checking in.");
+                throw new Exceptions.ValidationException($"You forgot to check out on {openPrevious.Date:dd MMM yyyy}. Please contact HR to fix it before checking in.");
 
             // Allow multiple sessions: only block if there's an OPEN (no checkout) session today
             var openToday = await _attendanceRepository.GetQueryable()

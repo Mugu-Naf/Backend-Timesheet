@@ -123,9 +123,21 @@ using (var scope = app.Services.CreateScope())
 
     // Allow multiple attendance sessions per day (drop unique constraint if exists)
     db.Database.ExecuteSqlRaw(@"
-        IF EXISTS (SELECT * FROM sys.indexes WHERE name='IX_Attendances_EmployeeId_Date' AND object_id = OBJECT_ID('Attendances'))
+        -- Drop any unique index on Attendances(EmployeeId, Date) regardless of name
+        DECLARE @indexName NVARCHAR(256);
+        SELECT @indexName = i.name
+        FROM sys.indexes i
+        JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+        JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+        WHERE i.object_id = OBJECT_ID('Attendances')
+          AND i.is_unique = 1
+          AND c.name IN ('EmployeeId', 'Date')
+          AND i.name != 'PK_Attendances';
+
+        IF @indexName IS NOT NULL
         BEGIN
-            DROP INDEX IX_Attendances_EmployeeId_Date ON Attendances;
+            DECLARE @sql NVARCHAR(500) = 'DROP INDEX [' + @indexName + '] ON Attendances;';
+            EXEC sp_executesql @sql;
             CREATE INDEX IX_Attendances_EmployeeId_Date ON Attendances (EmployeeId, Date);
         END
     ");
