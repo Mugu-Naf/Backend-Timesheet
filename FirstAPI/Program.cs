@@ -121,33 +121,25 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<TimeSheetContext>();
     db.Database.Migrate();
 
-    // Allow multiple attendance sessions per day (drop unique constraint if exists)
+    // Drop the unique index on Attendances so multiple sessions per day are allowed
+    // Step 1: Drop the unique index if it exists (by the name EF Core gave it)
     db.Database.ExecuteSqlRaw(@"
-        -- Drop any unique index on Attendances(EmployeeId, Date) regardless of name
-        DECLARE @indexName NVARCHAR(256);
-        SELECT TOP 1 @indexName = i.name
-        FROM sys.indexes i
-        INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
-        INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-        WHERE i.object_id = OBJECT_ID('Attendances')
-          AND i.is_unique = 1
-          AND i.is_primary_key = 0
-          AND c.name IN ('EmployeeId', 'Date');
+        IF EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE name = 'IX_Attendances_EmployeeId_Date'
+            AND object_id = OBJECT_ID('Attendances')
+        )
+        DROP INDEX IX_Attendances_EmployeeId_Date ON Attendances
+    ");
 
-        IF @indexName IS NOT NULL
-        BEGIN
-            DECLARE @sql NVARCHAR(500) = 'DROP INDEX [' + @indexName + '] ON [Attendances];';
-            EXEC sp_executesql @sql;
-        END
-
+    // Step 2: Create a non-unique index (allows multiple rows per employee per day)
+    db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (
             SELECT 1 FROM sys.indexes
             WHERE name = 'IX_Attendances_EmployeeId_Date'
-              AND object_id = OBJECT_ID('Attendances')
+            AND object_id = OBJECT_ID('Attendances')
         )
-        BEGIN
-            CREATE INDEX IX_Attendances_EmployeeId_Date ON Attendances (EmployeeId, Date);
-        END
+        CREATE INDEX IX_Attendances_EmployeeId_Date ON Attendances (EmployeeId, Date)
     ");
 
     // Ensure LeaveBalances table exists (in case migration didn't run)
