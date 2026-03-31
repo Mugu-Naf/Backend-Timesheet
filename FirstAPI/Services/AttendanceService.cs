@@ -169,6 +169,48 @@ namespace FirstAPI.Services
             };
         }
 
+        // HR-only: force-close an open session
+        public async Task<AttendanceResponseDto> FixCheckout(int attendanceId, AttendanceCheckOutDto dto)
+        {
+            var attendance = await _attendanceRepository.GetQueryable()
+                .Include(a => a.Employee)
+                .FirstOrDefaultAsync(a => a.AttendanceId == attendanceId);
+
+            if (attendance == null)
+                throw new EntityNotFoundException($"Attendance record {attendanceId} not found.");
+
+            if (attendance.CheckOutTime != null)
+                throw new Exceptions.ValidationException("This session already has a checkout time.");
+
+            var istOffset = TimeSpan.FromHours(5.5);
+            var nowIst    = DateTime.UtcNow.Add(istOffset);
+            var rawCheckOut = dto.CheckOutTime ?? nowIst;
+            attendance.CheckOutTime = new DateTime(rawCheckOut.Year, rawCheckOut.Month, rawCheckOut.Day,
+                                                   rawCheckOut.Hour, rawCheckOut.Minute, 0);
+
+            // Recalculate total hours for that day
+            var allSessions = await _attendanceRepository.GetQueryable()
+                .Where(a => a.EmployeeId == attendance.EmployeeId && a.Date.Date == attendance.Date.Date)
+                .ToListAsync();
+
+            double totalHours = allSessions
+                .Where(a => a.AttendanceId != attendanceId && a.CheckOutTime != null)
+                .Sum(a => (a.CheckOutTime!.Value - a.CheckInTime!.Value).TotalHours);
+            totalHours += (attendance.CheckOutTime.Value - attendance.CheckInTime!.Value).TotalHours;
+
+            var status = totalHours >= 4 ? AttendanceStatus.Present : AttendanceStatus.HalfDay;
+            attendance.Status = status;
+
+            foreach (var rec in allSessions.Where(a => a.AttendanceId != attendanceId))
+            {
+                rec.Status = status;
+                await _attendanceRepository.Update(rec);
+            }
+
+            await _attendanceRepository.Update(attendance);
+            return MapToDto(attendance);
+        }
+
         private async Task<AttendanceResponseDto> MapToResponseDto(Attendance attendance)
         {
             var fullRecord = await _attendanceRepository.GetQueryable()

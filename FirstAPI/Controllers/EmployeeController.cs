@@ -42,7 +42,7 @@ namespace FirstAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "HR,Admin")]
         public async Task<ActionResult<IEnumerable<EmployeeProfileDto>>> GetAll([FromQuery] GetAllEmployeesRequestDTO dto)
         {
             var result = await _employeeService.GetAllEmployees();

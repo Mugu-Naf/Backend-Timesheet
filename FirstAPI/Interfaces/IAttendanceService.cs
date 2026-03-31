@@ -10,5 +10,6 @@ namespace FirstAPI.Interfaces
         Task<IEnumerable<AttendanceResponseDto>> GetAttendanceByEmployee(int employeeId);
         Task<IEnumerable<AttendanceResponseDto>> GetAllAttendance();
         Task<AttendanceReportDto> GetAttendanceReport(int employeeId, DateTime fromDate, DateTime toDate);
+        Task<AttendanceResponseDto> FixCheckout(int attendanceId, AttendanceCheckOutDto dto);
     }
 }

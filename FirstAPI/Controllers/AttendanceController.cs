@@ -85,5 +85,18 @@ namespace FirstAPI.Controllers
             var result = await _attendanceService.GetAttendanceReport(employeeId, fromDate, toDate);
             return Ok(result);
         }
+
+        /// <summary>
+        /// HR-only: Force-close an open attendance session (fix forgotten checkout).
+        /// </summary>
+        [HttpPut("{attendanceId}/fix-checkout")]
+        [Authorize(Roles = "HR,Admin")]
+        public async Task<ActionResult<AttendanceResponseDto>> FixCheckout(int attendanceId, [FromBody] AttendanceCheckOutDto dto)
+        {
+            var result = await _attendanceService.FixCheckout(attendanceId, dto);
+            await _auditLog.LogAsync(GetUsername(), "FIX-CHECKOUT", "Attendance", attendanceId,
+                $"HR fixed checkout for attendance #{attendanceId}", GetIp());
+            return Ok(result);
+        }
     }
 }
