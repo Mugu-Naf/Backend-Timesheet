@@ -121,6 +121,15 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<TimeSheetContext>();
     db.Database.Migrate();
 
+    // Allow multiple attendance sessions per day (drop unique constraint if exists)
+    db.Database.ExecuteSqlRaw(@"
+        IF EXISTS (SELECT * FROM sys.indexes WHERE name='IX_Attendances_EmployeeId_Date' AND object_id = OBJECT_ID('Attendances'))
+        BEGIN
+            DROP INDEX IX_Attendances_EmployeeId_Date ON Attendances;
+            CREATE INDEX IX_Attendances_EmployeeId_Date ON Attendances (EmployeeId, Date);
+        END
+    ");
+
     // Ensure LeaveBalances table exists (in case migration didn't run)
     db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='LeaveBalances' AND xtype='U')

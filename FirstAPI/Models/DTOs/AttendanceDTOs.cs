@@ -21,6 +21,8 @@ namespace FirstAPI.Models.DTOs
         public DateTime? CheckInTime { get; set; }
         public DateTime? CheckOutTime { get; set; }
         public string Status { get; set; } = string.Empty;
+        public double TotalHoursToday { get; set; }
+        public int SessionNumber { get; set; }
     }
 
     public class AttendanceReportDto

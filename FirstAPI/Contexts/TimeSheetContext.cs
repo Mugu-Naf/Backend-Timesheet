@@ -83,7 +83,8 @@ namespace FirstAPI.Contexts
                       .WithMany(e => e.Attendances)
                       .HasForeignKey(a => a.EmployeeId)
                       .OnDelete(DeleteBehavior.Cascade);
-                entity.HasIndex(a => new { a.EmployeeId, a.Date }).IsUnique();
+                // Removed unique index on EmployeeId+Date to allow multiple sessions per day
+                entity.HasIndex(a => new { a.EmployeeId, a.Date });
             });
 
             // OvertimeRule
