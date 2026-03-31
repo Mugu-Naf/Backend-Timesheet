@@ -122,24 +122,18 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 
     // Drop the unique index on Attendances so multiple sessions per day are allowed
-    // Step 1: Drop the unique index if it exists (by the name EF Core gave it)
+    // Only drop if it is still unique (is_unique = 1)
     db.Database.ExecuteSqlRaw(@"
         IF EXISTS (
             SELECT 1 FROM sys.indexes
             WHERE name = 'IX_Attendances_EmployeeId_Date'
             AND object_id = OBJECT_ID('Attendances')
+            AND is_unique = 1
         )
-        DROP INDEX IX_Attendances_EmployeeId_Date ON Attendances
-    ");
-
-    // Step 2: Create a non-unique index (allows multiple rows per employee per day)
-    db.Database.ExecuteSqlRaw(@"
-        IF NOT EXISTS (
-            SELECT 1 FROM sys.indexes
-            WHERE name = 'IX_Attendances_EmployeeId_Date'
-            AND object_id = OBJECT_ID('Attendances')
-        )
-        CREATE INDEX IX_Attendances_EmployeeId_Date ON Attendances (EmployeeId, Date)
+        BEGIN
+            DROP INDEX IX_Attendances_EmployeeId_Date ON Attendances;
+            CREATE INDEX IX_Attendances_EmployeeId_Date ON Attendances (EmployeeId, Date);
+        END
     ");
 
     // Ensure LeaveBalances table exists (in case migration didn't run)
