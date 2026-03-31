@@ -20,6 +20,32 @@ namespace FirstAPI.Middlewares
             try
             {
                 await _next(context);
+
+                // Intercept 401/403 that weren't thrown as exceptions
+                // (e.g. missing token — JWT middleware sets status but doesn't throw)
+                if (!context.Response.HasStarted)
+                {
+                    if (context.Response.StatusCode == 401)
+                    {
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+                        {
+                            statusCode = 401,
+                            errorCode  = "UNAUTHORIZED",
+                            message    = "Authentication required. Please provide a valid Bearer token."
+                        }));
+                    }
+                    else if (context.Response.StatusCode == 403)
+                    {
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+                        {
+                            statusCode = 403,
+                            errorCode  = "FORBIDDEN",
+                            message    = "You do not have permission to access this resource."
+                        }));
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -30,32 +56,33 @@ namespace FirstAPI.Middlewares
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            context.Response.ContentType = "application/json";
+            if (context.Response.HasStarted) return;
 
-            var (statusCode, message) = exception switch
+            var (statusCode, errorCode) = exception switch
             {
-                UnAuthorizedException => (HttpStatusCode.Unauthorized, exception.Message),
-                EntityNotFoundException => (HttpStatusCode.NotFound, exception.Message),
-                DuplicateEntityException => (HttpStatusCode.Conflict, exception.Message),
-                Exceptions.ValidationException => (HttpStatusCode.BadRequest, exception.Message),
-                UnableToCreateEntityException => (HttpStatusCode.InternalServerError, exception.Message),
-                _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred")
+                UnAuthorizedException         => (HttpStatusCode.Unauthorized,          "UNAUTHORIZED"),
+                EntityNotFoundException       => (HttpStatusCode.NotFound,              "NOT_FOUND"),
+                DuplicateEntityException      => (HttpStatusCode.Conflict,              "DUPLICATE"),
+                Exceptions.ValidationException => (HttpStatusCode.BadRequest,           "VALIDATION_ERROR"),
+                UnableToCreateEntityException => (HttpStatusCode.InternalServerError,   "CREATE_FAILED"),
+                _                             => (HttpStatusCode.InternalServerError,   "INTERNAL_ERROR")
             };
 
-            context.Response.StatusCode = (int)statusCode;
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode  = (int)statusCode;
 
             var response = new
             {
                 statusCode = (int)statusCode,
-                message
+                errorCode,
+                message    = exception.Message
             };
 
-            var jsonResponse = JsonSerializer.Serialize(response, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-            await context.Response.WriteAsync(jsonResponse);
+            await context.Response.WriteAsync(
+                JsonSerializer.Serialize(response, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                }));
         }
     }
 }
