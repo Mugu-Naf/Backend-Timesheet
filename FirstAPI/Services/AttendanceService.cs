@@ -173,7 +173,6 @@ namespace FirstAPI.Services
         public async Task<AttendanceResponseDto> FixCheckout(int attendanceId, AttendanceCheckOutDto dto)
         {
             var attendance = await _attendanceRepository.GetQueryable()
-                .Include(a => a.Employee)
                 .FirstOrDefaultAsync(a => a.AttendanceId == attendanceId);
 
             if (attendance == null)
