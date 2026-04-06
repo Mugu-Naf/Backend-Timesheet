@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using FirstAPI.Contexts;
 using FirstAPI.Interfaces;
@@ -49,6 +50,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false; // prevent claim type remapping
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -58,7 +60,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["JWT:Issuer"],
             ValidAudience = builder.Configuration["JWT:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]!))
+                Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]!)),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.Name
         };
     });
 
